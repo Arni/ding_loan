@@ -225,6 +225,7 @@ function ding_loan_loans_form_submit($form, &$form_state) {
   if (!empty($ids)) {
     $result = ding_provider_invoke('loan', 'renew', $form_state['values']['account'], $ids);
     foreach ($result as $id => $status) {
+      file_put_contents("/home/randers/work/debug/loan7.txt", print_r($status, TRUE), FILE_APPEND);
       // Try to get entity for the item.
       $entity = $form_state['values']['items'][$id]->entity;
       if (!is_object($entity) || $entity->reply == FALSE) {
@@ -238,23 +239,41 @@ function ding_loan_loans_form_submit($form, &$form_state) {
       }
 
       // @todo Better feedback.
-      switch ($status) {
+      switch ($status['renewed']) {
         case DingProviderLoan::STATUS_RENEWED:
           drupal_set_message(t('"@title renewed"', array('@title' => $title)));
           $clear_cache = TRUE;
           break;
 
         case DingProviderLoan::STATUS_NOT_RENEWED:
-          if ($status['message'] == 'maxNofRenewals') {
-            $message = t('Maximum number of renewals reached');
+          if ($status['message'] == 'deniedMaxRenewalsReached') {
+            $message = t('maximum number of renewals reached');
           }
-          elseif ($status['message'] == 'copyIsReserved') {
-            $message = t('The material is reserved by another loaner');
+          elseif ($status['message'] == 'deniedReserved') {
+            $message = t('the material is reserved by another loaner');
+          }
+          elseif ($status['message'] == 'deniedLoanerIsBlocked') {
+            $message = t('your account is blocked. Contact your library');
+          }
+          elseif ($status['message'] == 'deniedMaterialIsNotLoanable') {
+            $message = t("the material can't be loaned");
+          }
+          elseif ($status['message'] == 'deniedMaterialIsNotFound') {
+            $message = t('the material is not found');
+          }
+          elseif ($status['message'] == 'deniedLoanerNotFound') {
+            $message = t('the loaner is not found');
+          }
+          elseif ($status['message'] == 'deniedLoaningProfileNotFound') {
+            $message = t('the loaner profile is not found');
+          }
+                    elseif ($status['message'] == 'deniedLoaningProfileNotFound') {
+            $message = t('the loaner profile is not found');
           }
           else {
             $message = t('Unable to renew material');
           }
-          drupal_set_message(t('"@title: @message"', array('@title' => $title, '@message' => $message)), 'warning');
+          drupal_set_message(t('"@title: is not renwed: @message"', array('@title' => $title, '@message' => $message)), 'warning');
           break;
 
         default:
